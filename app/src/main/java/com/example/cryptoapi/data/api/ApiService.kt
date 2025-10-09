@@ -20,7 +20,7 @@ interface ApiService {
     suspend fun getPriceHistory(
         @Path("id") coinId: String,
         @Query("vs_currency") vsCurrency: String = "usd",
-        @Query("days") days: Int = 30,
-        @Query("interval") interval: String = "daily"
+        @Query("days") days: String = "30",
+        @Query("interval") interval: String? = null
     ): PriceHistory
 }
