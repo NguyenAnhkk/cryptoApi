@@ -16,11 +16,17 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.Star
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -33,6 +39,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.cryptoapi.data.models.CoinMarket
 import com.example.cryptoapi.viewmodel.PostViewModel
+import com.example.cryptoapi.viewmodel.FavoritesViewModel
 
 @Composable
 fun PostListScreen(
@@ -42,6 +49,15 @@ fun PostListScreen(
 ) {
     val data by viewModel.coins.observeAsState(emptyList())
     val isLoading by viewModel.isLoading.observeAsState(false)
+
+    // Avoid refetching when returning from another screen
+    androidx.compose.runtime.LaunchedEffect(Unit) {
+        viewModel.ensureMarketsLoaded()
+    }
+
+    // Favorites ViewModel
+    val favoritesViewModel: FavoritesViewModel = viewModel()
+    val favorites = favoritesViewModel.favorites.collectAsState()
 
     val darkBackground = Color(0xFF0F0F23)
     val cardBackground = Color(0xFF1A1A2E)
@@ -110,6 +126,37 @@ fun PostListScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     modifier = Modifier.padding(top = 4.dp)
                 )
+            }
+
+            // Favorites Section (if any)
+            val favoriteCoins = data.filter { it.id in favorites.value }
+            if (favoriteCoins.isNotEmpty()) {
+                Column {
+                    Text(
+                        text = "⭐ Favorites",
+                        color = textTitle,
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.SemiBold
+                        ),
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    LazyRow(
+                        horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    ) {
+                        items(favoriteCoins) { coin ->
+                            CoinChip(
+                                coin = coin,
+                                onClick = { onCoinClick(coin.id, coin.name) },
+                                primaryColor = primaryColor,
+                                successColor = successColor,
+                                errorColor = errorColor,
+                                textPrimary = textPrimary,
+                                textSecondary = textSecondary,
+                                cardBackground = cardBackground
+                            )
+                        }
+                    }
+                }
             }
 
             // Top Gainers Section
@@ -190,7 +237,9 @@ fun PostListScreen(
                             errorColor = errorColor,
                             textPrimary = textPrimary,
                             textSecondary = textSecondary,
-                            cardBackground = cardBackground
+                            cardBackground = cardBackground,
+                            isFavorite = coin.id in favorites.value,
+                            onToggleFavorite = { favoritesViewModel.toggle(coin.id) }
                         )
                     }
                 }
@@ -265,7 +314,9 @@ private fun CoinListItem(
     errorColor: Color,
     textPrimary: Color,
     textSecondary: Color,
-    cardBackground: Color
+    cardBackground: Color,
+    isFavorite: Boolean,
+    onToggleFavorite: () -> Unit
 ) {
     Card(
         modifier = Modifier
@@ -355,6 +406,15 @@ private fun CoinListItem(
                     color = textSecondary,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(top = 8.dp)
+                )
+            }
+
+            // Favorite toggle button
+            IconButton(onClick = onToggleFavorite) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Filled.Star else Icons.Outlined.Star,
+                    contentDescription = if (isFavorite) "Unfavorite" else "Favorite",
+                    tint = if (isFavorite) primaryColor else textSecondary
                 )
             }
         }

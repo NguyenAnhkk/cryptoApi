@@ -38,4 +38,11 @@ class PostViewModel: ViewModel()  {
             }
         }
     }
+
+    fun ensureMarketsLoaded() {
+        val current = _coins.value
+        if (!current.isNullOrEmpty()) return
+        if (_isLoading.value == true) return
+        fetchMarkets()
+    }
 }
